@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fases Lunares - Explorador Cósmico</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #818cf8;
+            --focus: #c084fc;
+            --moon-light: #fdf4dc;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            background-image: url('background_stars.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            /* Intentar evitar scroll en body */
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 1000px;
+            /* Mucho más ancho */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Layout Grid Principal */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            /* Columna fija para luna, resto para info */
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* --- Panel Izquierdo: Luna --- */
+        .moon-display {
+            width: 100%;
+            aspect-ratio: 1;
+            /* Cuadrado */
+            position: relative;
+            background: radial-gradient(circle, #0b1016 60%, transparent 72%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Panel Derecho: Info y Controles --- */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin: 0 0 1.5rem 0;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.8rem;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--focus);
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .phase-big-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(to right, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.3;
+            padding-bottom: 0.2rem;
+            /* Espacio extra para descendentes */
+        }
+
+        .illumination-text {
+            font-size: 1.25rem;
+            color: var(--focus);
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .location-btn {
+            grid-column: 1 / -1;
+            background: rgba(129, 140, 248, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .location-btn:hover {
+            background: rgba(129, 140, 248, 0.2);
+        }
+
+        .next-event-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .coords-compact {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* --- Timeline Footer --- */
+        .timeline-wrapper {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .timeline-track {
+            display: flex;
+            justify-content: space-between;
+            overflow-x: auto;
+            gap: 8px;
+            padding-bottom: 4px;
+            /* scrollbar reserve */
+        }
+
+        /* Thin scrollbar for timeline */
+        .timeline-track::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .timeline-track::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .day-card {
+            flex: 1;
+            /* Distribuir equitativamente */
+            min-width: 60px;
+            background: transparent;
+            border-radius: 8px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .day-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .day-card.active {
+            background: rgba(129, 140, 248, 0.15);
+            border-color: var(--accent);
+        }
+
+        .day-card .date-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .day-card .phase-label-mini {
+            display: none;
+            /* Ocultar texto en modo compacto para ahorrar espacio */
+        }
+
+        /* Responsive */
+        @media (max-width: 800px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .moon-display {
+                width: 200px;
+                margin: 0 auto;
+            }
+
+            body {
+                overflow-y: auto;
+                /* Permitir scroll en móviles */
+            }
+        }
+
+        /* ... (existing styles) ... */
+
+        /* --- Map Modal --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 90%;
+            width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: crosshair;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .map-image {
+            width: 100%;
+            display: block;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="dashboard-grid">
+            <!-- Columna Izquierda: Visualización -->
+            <div class="moon-display" id="main-moon">
+                <!-- SVG generado por JS -->
+            </div>
+
+            <!-- Columna Derecha: Datos y Controles -->
+            <div class="info-panel">
+                <h1>Explorador Lunar</h1>
+
+                <div>
+                    <h2 class="phase-big-text" id="phase-name">--</h2>
+                    <div class="illumination-text" id="illumination">--%</div>
+                </div>
+
+                <div class="data-grid">
+                    <div class="control-group">
+                        <label>Fecha</label>
+                        <input type="date" id="date-input">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Latitud</label>
+                        <input type="number" id="lat-input" step="any">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Longitud</label>
+                        <input type="number" id="lon-input" step="any">
+                    </div>
+
+                    <div class="control-group" style="justify-content: flex-end;">
+                        <button class="location-btn" onclick="getLocation()">
+                            <span>📍</span> Mi Ubicación
+                        </button>
+                        <button class="location-btn" onclick="toggleMap(true)" style="margin-top: 5px;">
+                            <span>🗺️</span> Mapa
+                        </button>
+                    </div>
+                </div>
+
+                <div class="next-event-box">
+                    <div style="font-size: 2rem;">🌕</div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">PRÓXIMA LUNA LLENA</div>
+                        <div id="next-full-moon-display"
+                            style="font-weight: 500; font-size: 1.1rem; color: var(--moon-light);">--</div>
+                    </div>
+                </div>
+
+                <div class="coords-compact" id="coords-display"></div>
+            </div>
+        </div>
+
+        <!-- Footer: Línea de tiempo -->
+        <div class="timeline-wrapper">
+            <div class="timeline-track" id="timeline-track">
+                <!-- JS rellena esto -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Modal -->
+    <div class="modal-overlay" id="map-modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleMap(false)">×</button>
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent);">Seleccionar Ubicación</h3>
+            <div class="map-container" id="map-container">
+                <img src="world_map.png" class="map-image" id="world-map-img" alt="World Map">
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0;">Haz clic en el mapa para
+                establecer tu ubicación</p>
+        </div>
+    </div>
+
+    <script>
+        const PHASE_NAMES = {
+            'New Moon': 'Luna Nueva',
+            'Waxing Crescent': 'L. Creciente', // Nombres más cortos
+            'First Quarter': 'Cuarto Creciente',
+            'Waxing Gibbous': 'Gibosa Crec.',
+            'Full Moon': 'Luna Llena',
+            'Waning Gibbous': 'Gibosa Meng.',
+            'Last Quarter': 'Cuarto Menguante',
+            'Waning Crescent': 'L. Menguante'
+        };
+
+        function getJulianDate(date) {
+            return (date.getTime() / 86400000) - (date.getTimezoneOffset() / 1440) + 2440587.5;
+        }
+
+        function normalize(value) {
+            value = value - Math.floor(value);
+            if (value < 0) value += 1;
+            return value;
+        }
+
+        function calculateMoonInfo(date) {
+            const jd = getJulianDate(date);
+            const daysSinceNow = jd - 2451549.5;
+            const synodicMonth = 29.53058867;
+            const newMoons = daysSinceNow / synodicMonth;
+            const phase = normalize(newMoons);
+            const age = phase * synodicMonth;
+
+            let nameKey = 'New Moon';
+            if (phase < 0.03 || phase > 0.97) nameKey = 'New Moon';
+            else if (phase < 0.22) nameKey = 'Waxing Crescent';
+            else if (phase < 0.28) nameKey = 'First Quarter';
+            else if (phase < 0.47) nameKey = 'Waxing Gibbous';
+            else if (phase < 0.53) nameKey = 'Full Moon';
+            else if (phase < 0.72) nameKey = 'Waning Gibbous';
+            else if (phase < 0.78) nameKey = 'Last Quarter';
+            else nameKey = 'Waning Crescent';
+
+            let p_illum = phase;
+            if (p_illum > 1) p_illum -= 1;
+            let illumination = (1 - Math.cos(2 * Math.PI * phase)) / 2;
+
+            return {
+                phaseRaw: phase,
+                nameKey: nameKey,
+                nameES: PHASE_NAMES[nameKey],
+                illumination: illumination,
+                age: age
+            };
+        }
+
+        function drawMoon(container, phase, isSouthernHemisphere, sizeOverride) {
+            container.innerHTML = '';
+            // Auto size to container width for response
+            const width = sizeOverride || container.clientWidth;
+            const size = width;
+
+            const cx = size / 2;
+            const cy = size / 2;
+            const r = (size / 2) - 2;
+
+            const uid = Math.random().toString(36).substr(2, 9); // Unique ID for pattern
+            const patternId = `moon-pattern-${uid}`;
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "100%");
+            svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+
+            // Define Texture Pattern
+            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+            pattern.setAttribute("id", patternId);
+            pattern.setAttribute("patternUnits", "userSpaceOnUse");
+            pattern.setAttribute("width", size);
+            pattern.setAttribute("height", size);
+
+            const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+            image.setAttribute("href", "moon_texture.png");
+            image.setAttribute("width", size);
+            image.setAttribute("height", size);
+            image.setAttribute("x", 0);
+            image.setAttribute("y", 0);
+
+            pattern.appendChild(image);
+            defs.appendChild(pattern);
+            svg.appendChild(defs);
+
+            const baseCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            baseCircle.setAttribute("cx", cx);
+            baseCircle.setAttribute("cy", cy);
+            baseCircle.setAttribute("r", r);
+            baseCircle.setAttribute("fill", "#050505"); // Dark backing (shadow side)
+            svg.appendChild(baseCircle);
+
+            let p = phase;
+            let isWaxing = p <= 0.5;
+            let lightOnRight = isWaxing;
+            if (isSouthernHemisphere) lightOnRight = !isWaxing;
+
+            // Rotation for Southern Hemisphere (texture also needs rotation if we want to correspond to reality, 
+            // but simply flipping the light side direction is the standard simple approx.
+            // Ideally, for Southern, the moon appears inverted (rotated 180). 
+            // We can rotate the entire SVG group or the image coordinates.
+            // Let's rotate the whole SVG container for Southern Hemisphere to keep craters consistent with "upside down" view.
+            if (isSouthernHemisphere) {
+                // However, current logic just flips light side. 
+                // Realistically, Southern view is rotated 180 deg relative to Northern.
+                // Let's implement full rotation for better realism with texture.
+                svg.setAttribute("style", "transform: rotate(180deg); transform-origin: center;");
+                // If we rotate 180, the 'lightOnRight' logic needs to be standard northern again?
+                // If we rotate 180, a Waxing Crescent (Right side lit in North) becomes (Left side lit in South).
+                // So if we physically rotate the map, we don't need to invert the logic variable 'lightOnRight'.
+                // Let's reset lightOnRight to Northern standard if we are rotating.
+                lightOnRight = isWaxing;
+            }
+
+            let q = Math.cos(2 * Math.PI * p);
+            let hRadius = r * Math.abs(q);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            // FILL WITH TEXTURE PATTERN
+            path.setAttribute("fill", `url(#${patternId})`);
+
+            let d = "";
+
+            if (p > 0.48 && p < 0.52) {
+                // Full Moon approx
+                baseCircle.setAttribute("fill", `url(#${patternId})`);
+            } else if (p < 0.02 || p > 0.98) {
+                // New Moon - allow baseCircle (black) to show.
+                // Optionally add faint "Earthshine" by putting a low opacity texture on top?
+                // For now, keep it dark/invisible as standard.
+            } else {
+                const sweep = lightOnRight ? 1 : 0;
+                d += `M ${cx},${cy - r} A ${r},${r} 0 0,${sweep} ${cx},${cy + r} `;
+
+                let isGibbous = (p > 0.25 && p < 0.75);
+                let innerSweep = 0;
+                if (lightOnRight) {
+                    innerSweep = isGibbous ? 1 : 0;
+                } else {
+                    innerSweep = isGibbous ? 0 : 1;
+                }
+
+                d += `A ${hRadius},${r} 0 0,${innerSweep} ${cx},${cy - r}`;
+                path.setAttribute("d", d);
+                svg.appendChild(path);
+            }
+            container.appendChild(svg);
+        }
+
+        function calculateNextFullMoon(startDate) {
+            let d = new Date(startDate);
+            for (let i = 0; i < 45; i++) {
+                let currentPhase = calculateMoonInfo(d).phaseRaw;
+                let diff = Math.abs(currentPhase - 0.5);
+                if (diff < 0.05) {
+                    let tomorrow = new Date(d);
+                    tomorrow.setDate(d.getDate() + 1);
+                    let diffTomorrow = Math.abs(calculateMoonInfo(tomorrow).phaseRaw - 0.5);
+                    if (diff < diffTomorrow) return d;
+                }
+                d.setDate(d.getDate() + 1);
+            }
+            return d;
+        }
+
+        function updateTimeline(centerDate, isSouthern) {
+            const track = document.getElementById('timeline-track');
+            track.innerHTML = '';
+
+            for (let i = -5; i <= 5; i++) {
+                const day = new Date(centerDate);
+                day.setDate(centerDate.getDate() + i);
+
+                const info = calculateMoonInfo(day);
+
+                const card = document.createElement('div');
+                card.className = `day-card ${i === 0 ? 'active' : ''}`;
+                card.onclick = () => {
+                    document.getElementById('date-input').valueAsDate = day;
+                    updateUI();
+                };
+
+                const dateLabel = document.createElement('div');
+                dateLabel.className = 'date-label';
+                dateLabel.textContent = `${day.getDate()}/${day.getMonth() + 1}`;
+
+                const miniMoon = document.createElement('div');
+                miniMoon.className = 'mini-moon';
+                // 50px defined by min-width in CSS
+
+                card.appendChild(dateLabel);
+                card.appendChild(miniMoon);
+                track.appendChild(card);
+
+                // Render mini moon SVG
+                // Forzar 40px para la tarjeta
+                drawMoon(miniMoon, info.phaseRaw, isSouthern, 40);
+            }
+        }
+
+        function updateUI() {
+            const dateInput = document.getElementById('date-input').value;
+            let lat = parseFloat(document.getElementById('lat-input').value) || 0;
+
+            if (!dateInput) return;
+
+            const dateParts = dateInput.split('-');
+            const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), 12, 0, 0);
+            const isSouthern = lat < 0;
+
+            const info = calculateMoonInfo(date);
+
+            // Header Info
+            document.getElementById('phase-name').textContent = info.nameES;
+            document.getElementById('illumination').textContent = Math.round(info.illumination * 100) + "% Iluminado";
+
+            const hemiText = isSouthern ? "Sur" : "Norte";
+            document.getElementById('coords-display').textContent =
+                `Lat: ${lat.toFixed(2)} (${hemiText}) • Edad: ${info.age.toFixed(1)}d`;
+
+            const mainContainer = document.getElementById('main-moon');
+            drawMoon(mainContainer, info.phaseRaw, isSouthern); // Auto size
+
+            updateTimeline(date, isSouthern);
+
+            let searchStartDate = new Date(date);
+            if (info.nameKey === 'Full Moon') searchStartDate.setDate(searchStartDate.getDate() + 5);
+            const nextFull = calculateNextFullMoon(searchStartDate);
+
+            const options = { weekday: 'short', day: 'numeric', month: 'short' }; // Formato más corto
+            document.getElementById('next-full-moon-display').textContent =
+                nextFull.toLocaleDateString('es-ES', options);
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    document.getElementById('lat-input').value = position.coords.latitude.toFixed(4);
+                    document.getElementById('lon-input').value = position.coords.longitude.toFixed(4);
+                    updateUI();
+                });
+            } else {
+                alert("Geolocalización no disponible");
+            }
+        }
+
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('date-input').value = `${yyyy}-${mm}-${dd}`;
+
+        document.getElementById('date-input').addEventListener('change', updateUI);
+        document.getElementById('lat-input').addEventListener('input', updateUI);
+        document.getElementById('lon-input').addEventListener('input', updateUI);
+        window.addEventListener('resize', updateUI); // Redraw moon on resize
+
+        // Map Picker Logic
+        function toggleMap(show) {
+            const modal = document.getElementById('map-modal');
+            modal.style.display = show ? 'flex' : 'none';
+        }
+
+        document.getElementById('world-map-img').addEventListener('click', function (e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Equirectangular projection simple mapping
+            // Map dimensions: width = 360 deg, height = 180 deg
+            // X: 0 to width => -180 to 180 longitude
+            // Y: 0 to height => 90 to -90 latitude
+
+            const lat = 90 - (y / rect.height) * 180;
+            const lon = (x / rect.width) * 360 - 180;
+
+            document.getElementById('lat-input').value = lat.toFixed(4);
+            document.getElementById('lon-input').value = lon.toFixed(4);
+            updateUI();
+            toggleMap(false);
+        });
+
+        // Close modal on outside click
+        document.getElementById('map-modal').addEventListener('click', function (e) {
+            if (e.target === this) toggleMap(false);
+        });
+
+        window.onload = function () {
+            updateUI();
+            getLocation(); // Auto-detect on load
+        };
+
+    </script>
+</body>
+
+</html>
